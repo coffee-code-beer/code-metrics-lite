@@ -29,12 +29,10 @@ def analyze_file(file_path: Path):
                 total_lines += 1
                 stripped = line.strip()
 
-                # Пустая строка
                 if not stripped:
                     blank_lines += 1
                     continue
 
-                # Многострочные комментарии
                 if cfg["block_start"] and cfg["block_end"]:
                     if not in_block_comment and stripped.startswith(cfg["block_start"]):
                         in_block_comment = True
@@ -48,13 +46,12 @@ def analyze_file(file_path: Path):
                             in_block_comment = False
                         continue
 
-                # Однострочные комментарии
                 if cfg["comment_single"] and stripped.startswith(cfg["comment_single"]):
                     comment_lines += 1
                 else:
                     code_lines += 1
 
-    except Exception as e:
+    except (OSError, PermissionError) as e:
         print(f"Ошибка при чтении файла {file_path}: {e}")
         return None
 
@@ -87,14 +84,13 @@ def main():
         print(f"Путь {target_dir} не существует!")
         return
 
-    print( сканирование директории: {target_dir.resolve()} ...\n)
+    print(f"Сканирование директории: {target_dir.resolve()} ...\n")
     data = scan_directory(target_dir)
 
     if not data:
         print("Подходящих файлов для анализа не найдено.")
         return
 
-    # Вывод результатов
     print(f"{'Файл':<25} | {'Тип':<6} | {'Всего':<6} | {'Код':<6} | {'Коммент':<8} | {'Пустые':<6}")
     print("-" * 65)
 
