@@ -1,4 +1,3 @@
-import os
 import sys
 from pathlib import Path
 
@@ -77,6 +76,51 @@ def scan_directory(root_dir: Path):
                 results.append(stats)
     return results
 
+def print_table(headers: list, rows: list):
+    if not rows:
+        return
+
+    MAX_FILE_LEN = 40
+    
+    col_widths = [len(h) for h in headers]
+    for r in rows:
+        file_len = min(len(r[0]), MAX_FILE_LEN)
+        if file_len > col_widths[0]:
+            col_widths[0] = file_len
+        
+        for i in range(1, len(r)):
+            if len(r[i]) > col_widths[i]:
+                col_widths[i] = len(r[i])
+
+    def format_row(r):
+        file_name = r[0]
+        if len(file_name) > MAX_FILE_LEN:
+            file_name = file_name[:MAX_FILE_LEN - 3] + "..."
+        
+        formatted = [
+            f"{file_name:<{col_widths[0]}}",
+            f"{r[1]:<{col_widths[1]}}",
+            f"{r[2]:>{col_widths[2]}}",
+            f"{r[3]:>{col_widths[3]}}",
+            f"{r[4]:>{col_widths[4]}}",
+            f"{r[5]:>{col_widths[5]}}"
+        ]
+        return " | ".join(formatted)
+
+    header_parts = [
+        f"{h:>{col_widths[i]}}" if i >= 2 else f"{h:<{col_widths[i]}}"
+        for i, h in enumerate(headers)
+    ]
+    header_str = " | ".join(header_parts)
+    separator = "-" * len(header_str)
+
+    print(header_str)
+    print(separator)
+    for r in rows[:-1]:
+        print(format_row(r))
+    print(separator)
+    print(format_row(rows[-1]))
+
 def main():
     target_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(".")
     
@@ -91,19 +135,34 @@ def main():
         print("Подходящих файлов для анализа не найдено.")
         return
 
-    print(f"{'Файл':<25} | {'Тип':<6} | {'Всего':<6} | {'Код':<6} | {'Коммент':<8} | {'Пустые':<6}")
-    print("-" * 65)
-
+    headers = ["Файл", "Тип", "Всего", "Код", "Коммент", "Пустые"]
+    rows = []
     totals = {"total": 0, "code": 0, "comments": 0, "blank": 0}
+
     for row in data:
-        print(f"{row['file']:<25} | {row['ext']:<6} | {row['total']:<6} | {row['code']:<6} | {row['comments']:<8} | {row['blank']:<6}")
+        rows.append([
+            str(row['file']),
+            str(row['ext']),
+            str(row['total']),
+            str(row['code']),
+            str(row['comments']),
+            str(row['blank'])
+        ])
         totals["total"] += row["total"]
         totals["code"] += row["code"]
         totals["comments"] += row["comments"]
         totals["blank"] += row["blank"]
 
-    print("-" * 65)
-    print(f"{'ИТОГО:':<25} | {'-':<6} | {totals['total']:<6} | {totals['code']:<6} | {totals['comments']:<8} | {totals['blank']:<6}")
+    rows.append([
+        "ИТОГО:",
+        "-",
+        str(totals["total"]),
+        str(totals["code"]),
+        str(totals["comments"]),
+        str(totals["blank"])
+    ])
+
+    print_table(headers, rows)
 
 if __name__ == "__main__":
     main()
