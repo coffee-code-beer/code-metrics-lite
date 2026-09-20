@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "code-metrics-lite"
+version = "1.0.0"
+description = "A lightweight, zero-dependency Python utility for instant codebase statistics."
+readme = "README.md"
+authors = [
+    { name = "Your Organization" }
+]
+requires-python = ">=3.6"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = []
+py-modules = ["analyzer"]
+
+[project.urls]
+Homepage = "https://github.com/coffee-code-beer/code-metrics-lite"
+
+[project.scripts]
+code-metrics = "analyzer:main"
