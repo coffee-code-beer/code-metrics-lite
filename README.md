@@ -44,6 +44,27 @@ python analyzer.py
 `pip install git+https://github.com/coffee-code-beer/code-metrics-lite.git`
 
 ---
+### Использование .gitignore
+Если вы хотите, чтобы скрипт также пропускал файлы и директории, указанные в .gitignore, добавьте аргумент `-gi` или `--gitignore` после пути к директории:
+`python analyzer.py /path/to/your/project -gi`
+или
+`python analyzer.py /path/to/your/project --gitignore`
+В этом режиме скрипт найдёт .gitignore в указанной директории и применит его правила при подсчёте строк.
+
+Например, если в .gitignore указано:
+```
+node_modules/
+build/
+*.log
+.env
+```
+то эти файлы и директории не будут учитываться в статистике.
+
+Аргумент можно использовать и без указания пути:
+`python analyzer.py --gitignore`
+В этом случае будет проанализирована текущая директория с учётом её .gitignore.
+
+Без аргумента -gi или --gitignore .gitignore не используется.
 
 ## 📊 Пример вывода
 
