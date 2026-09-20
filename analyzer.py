@@ -8,6 +8,8 @@ CONFIG = {
     ".h": {"comment_single": "//", "block_start": "/*", "block_end": "*/"},
     ".js": {"comment_single": "//", "block_start": "/*", "block_end": "*/"},
     ".ts": {"comment_single": "//", "block_start": "/*", "block_end": "*/"},
+    ".jsx": {"comment_single": "//", "block_start": "/*", "block_end": "*/"},
+    ".tsx": {"comment_single": "//", "block_start": "/*", "block_end": "*/"},
 }
 
 class GitignoreRule:
@@ -20,13 +22,8 @@ class GitignoreRule:
         if pattern.startswith("!"):
             self.negated = True
             pattern = pattern[1:]
-
         elif pattern.startswith(r"\!"):
             pattern = pattern[1:]
-
-        if not pattern:
-            self.pattern = ""
-            return
 
         if pattern.endswith("/"):
             self.directory_only = True
@@ -35,110 +32,57 @@ class GitignoreRule:
         if pattern.startswith("/"):
             self.anchored = True
             pattern = pattern[1:]
+        elif "/" in pattern:
+            self.anchored = True
 
         self.pattern = pattern
 
-    def matches(self, relative_path: str, is_dir: bool) -> bool:
+    def matches(self, rel_path: str, is_dir: bool) -> bool:
         if not self.pattern:
-            return False
-
-        relative_path = relative_path.replace("\\", "/").strip("/")
-
-        if not relative_path:
             return False
 
         if self.directory_only and not is_dir:
             return False
 
-        pattern = self.pattern
-
-        if "/" not in pattern:
-            for part in relative_path.split("/"):
-                if fnmatch.fnmatchcase(part, pattern):
+        if not self.anchored:
+            parts = rel_path.split("/")
+            for part in parts:
+                if fnmatch.fnmatchcase(part, self.pattern):
                     return True
+            return fnmatch.fnmatchcase(rel_path, self.pattern)
 
-            return False
-
-        if self.anchored:
-            return self._match_path(relative_path, pattern)
-
-        parts = relative_path.split("/")
-
-        for i in range(len(parts)):
-            candidate = "/".join(parts[i:])
-
-            if self._match_path(candidate, pattern):
-                return True
-
-        return False
+        return self._match_path(rel_path, self.pattern)
 
     @staticmethod
     def _match_path(path: str, pattern: str) -> bool:
-        path = path.strip("/")
-        pattern = pattern.strip("/")
-
-        if not path or not pattern:
-            return False
-
         if "**" not in pattern:
             return fnmatch.fnmatchcase(path, pattern)
 
-        # ---------------------------------------------------------
-        # **/foo
-        # ---------------------------------------------------------
+        # Простая обработка wildcard **
         if pattern.startswith("**/"):
             suffix = pattern[3:]
-
             if fnmatch.fnmatchcase(path, suffix):
                 return True
-
             parts = path.split("/")
-
             for i in range(1, len(parts)):
-                candidate = "/".join(parts[i:])
-
-                if fnmatch.fnmatchcase(candidate, suffix):
+                if fnmatch.fnmatchcase("/".join(parts[i:]), suffix):
                     return True
-
             return False
 
-        # ---------------------------------------------------------
-        # foo/**
-        # ---------------------------------------------------------
         if pattern.endswith("/**"):
             prefix = pattern[:-3].rstrip("/")
+            return path == prefix or path.startswith(prefix + "/")
 
-            return (
-                path == prefix
-                or path.startswith(prefix + "/")
-            )
-
-        # ---------------------------------------------------------
-        # foo/**/bar
-        # ---------------------------------------------------------
         parts = pattern.split("**")
-
         if len(parts) == 2:
-            left = parts[0].strip("/")
-            right = parts[1].strip("/")
-
+            left, right = parts[0].strip("/"), parts[1].strip("/")
             path_parts = path.split("/")
-
             for i in range(len(path_parts) + 1):
                 left_part = "/".join(path_parts[:i])
                 right_part = "/".join(path_parts[i:])
-
-                left_matches = (
-                    not left
-                    or fnmatch.fnmatchcase(left_part, left)
-                )
-
-                right_matches = (
-                    not right
-                    or fnmatch.fnmatchcase(right_part, right)
-                )
-
-                if left_matches and right_matches:
+                left_ok = not left or fnmatch.fnmatchcase(left_part, left)
+                right_ok = not right or fnmatch.fnmatchcase(right_part, right)
+                if left_ok and right_ok:
                     return True
 
         return fnmatch.fnmatchcase(path, pattern)
@@ -149,33 +93,19 @@ class Gitignore:
         self.root_dir = root_dir.resolve()
         self.rules = []
 
-        self.gitignore_path = self.root_dir / ".gitignore"
-
-        if not self.gitignore_path.is_file():
+        gitignore_path = self.root_dir / ".gitignore"
+        if not gitignore_path.is_file():
             return
 
         try:
-            with open(
-                self.gitignore_path,
-                "r",
-                encoding="utf-8",
-                errors="ignore"
-            ) as f:
-
+            with open(gitignore_path, "r", encoding="utf-8", errors="ignore") as f:
                 for line in f:
-                    line = line.rstrip("\r\n")
-
-                    if not line:
+                    line = line.rstrip("\r\n").strip()
+                    if not line or line.startswith("#"):
                         continue
-
-                    if line.startswith("#"):
-                        continue
-
                     if line.startswith(r"\#"):
                         line = line[1:]
-
                     self.rules.append(GitignoreRule(line))
-
         except (OSError, PermissionError) as e:
             print(f"Ошибка при чтении .gitignore: {e}")
 
@@ -186,72 +116,52 @@ class Gitignore:
         except ValueError:
             return None
 
-    def _rule_matches_any_parent(
-        self,
-        path: Path,
-        rule: GitignoreRule
-    ) -> bool:
-
-        relative = self._relative_path(path)
-
-        if relative is None:
-            return False
-
-        parts = relative.split("/")
-
-        if rule.matches(relative, path.is_dir()):
-            return True
-
-        for i in range(1, len(parts)):
-            parent = "/".join(parts[:i])
-
-            if rule.matches(parent, True):
-                return True
-
-        return False
-
     def is_ignored(self, path: Path) -> bool:
-
-        relative = self._relative_path(path)
-
-        if relative is None:
+        rel_path = self._relative_path(path)
+        if rel_path is None:
             return False
 
-
-        if relative == ".gitignore":
+        if rel_path == ".gitignore":
             return True
 
+        is_dir = path.is_dir()
+        parts = rel_path.split("/")
+        
         ignored = False
 
         for rule in self.rules:
-            if self._rule_matches_any_parent(path, rule):
+            match_found = False
+            curr_subpath = ""
+            
+            for i in range(len(parts)):
+                part = parts[i]
+                curr_subpath = f"{curr_subpath}/{part}" if curr_subpath else part
+                is_subpath_dir = (i < len(parts) - 1) or is_dir
+
+                if rule.matches(curr_subpath, is_subpath_dir):
+                    match_found = True
+                    break
+
+            if match_found:
                 ignored = not rule.negated
 
         return ignored
 
+
 def analyze_file(file_path: Path):
     ext = file_path.suffix
-
     if ext not in CONFIG:
         return None
 
     cfg = CONFIG[ext]
-
     total_lines = 0
     blank_lines = 0
     comment_lines = 0
     code_lines = 0
-
     in_block_comment = False
 
     try:
-        with open(
-            file_path,
-            "r",
-            encoding="utf-8",
-            errors="ignore"
-        ) as f:
-
+        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
             for line in f:
                 total_lines += 1
                 stripped = line.strip()
@@ -260,34 +170,35 @@ def analyze_file(file_path: Path):
                     blank_lines += 1
                     continue
 
-                if cfg["block_start"] and cfg["block_end"]:
-                    if (
-                        not in_block_comment
-                        and stripped.startswith(cfg["block_start"])
-                    ):
+                if ext in (".jsx", ".tsx"):
+                    if stripped.startswith("{/*") and stripped.endswith("*/}"):
+                        comment_lines += 1
+                        continue
+                    
+                    if not in_block_comment and stripped.startswith("{/*"):
                         in_block_comment = True
                         comment_lines += 1
-
-                        if (
-                            stripped.endswith(cfg["block_end"])
-                            and len(stripped) >= len(cfg["block_end"])
-                        ):
-                            in_block_comment = False
-
                         continue
 
+                    if in_block_comment and stripped.endswith("*/}"):
+                        in_block_comment = False
+                        comment_lines += 1
+                        continue
+
+                if cfg["block_start"] and cfg["block_end"]:
+                    if not in_block_comment and stripped.startswith(cfg["block_start"]):
+                        in_block_comment = True
+                        comment_lines += 1
+                        if stripped.endswith(cfg["block_end"]) and len(stripped) >= len(cfg["block_end"]):
+                            in_block_comment = False
+                        continue
                     elif in_block_comment:
                         comment_lines += 1
-
                         if stripped.endswith(cfg["block_end"]):
                             in_block_comment = False
-
                         continue
 
-                if (
-                    cfg["comment_single"]
-                    and stripped.startswith(cfg["comment_single"])
-                ):
+                if cfg["comment_single"] and stripped.startswith(cfg["comment_single"]):
                     comment_lines += 1
                 else:
                     code_lines += 1
@@ -305,19 +216,9 @@ def analyze_file(file_path: Path):
         "blank": blank_lines,
     }
 
-
 def scan_directory(root_dir: Path, use_gitignore=False):
     results = []
-
-    ignore_dirs = {
-        ".git",
-        "build",
-        "node_modules",
-        "__pycache__",
-        "venv",
-        ".venv",
-    }
-
+    ignore_dirs = {".git", "__pycache__", "venv", ".venv"}
     gitignore = Gitignore(root_dir) if use_gitignore else None
 
     import os
@@ -325,20 +226,14 @@ def scan_directory(root_dir: Path, use_gitignore=False):
     for current_dir, dirs, files in os.walk(root_dir):
         current_path = Path(current_dir)
 
-        dirs[:] = [
-            d for d in dirs
-            if d not in ignore_dirs
-        ]
+        dirs[:] = [d for d in dirs if d not in ignore_dirs]
 
         if gitignore:
             filtered_dirs = []
-
             for dirname in dirs:
                 dir_path = current_path / dirname
-
                 if not gitignore.is_ignored(dir_path):
                     filtered_dirs.append(dirname)
-
             dirs[:] = filtered_dirs
 
         for filename in files:
@@ -348,23 +243,21 @@ def scan_directory(root_dir: Path, use_gitignore=False):
                 continue
 
             stats = analyze_file(file_path)
-
             if stats:
                 results.append(stats)
 
     return results
+
 
 def print_table(headers: list, rows: list):
     if not rows:
         return
 
     MAX_FILE_LEN = 40
-
     col_widths = [len(h) for h in headers]
 
     for r in rows:
         file_len = min(len(r[0]), MAX_FILE_LEN)
-
         if file_len > col_widths[0]:
             col_widths[0] = file_len
 
@@ -374,7 +267,6 @@ def print_table(headers: list, rows: list):
 
     def format_row(r):
         file_name = r[0]
-
         if len(file_name) > MAX_FILE_LEN:
             file_name = file_name[:MAX_FILE_LEN - 3] + "..."
 
@@ -386,12 +278,10 @@ def print_table(headers: list, rows: list):
             f"{r[4]:>{col_widths[4]}}",
             f"{r[5]:>{col_widths[5]}}"
         ]
-
         return " | ".join(formatted)
 
     header_parts = [
-        f"{h:>{col_widths[i]}}" if i >= 2
-        else f"{h:<{col_widths[i]}}"
+        f"{h:>{col_widths[i]}}" if i >= 2 else f"{h:<{col_widths[i]}}"
         for i, h in enumerate(headers)
     ]
 
@@ -428,7 +318,6 @@ def main():
     )
 
     args = parser.parse_args()
-
     target_dir = Path(args.target_dir)
 
     if not target_dir.exists():
@@ -439,50 +328,27 @@ def main():
         print(f"Путь {target_dir} не является директорией!")
         return
 
-    print(
-        f"Сканирование директории: "
-        f"{target_dir.resolve()} ..."
-    )
+    print(f"Сканирование директории: {target_dir.resolve()} ...")
 
     if args.gitignore:
         gitignore_path = target_dir / ".gitignore"
-
         if gitignore_path.is_file():
             print("Используется .gitignore")
         else:
-            print(
-                ".gitignore не найден, "
-                "используется стандартный список исключений."
-            )
+            print(".gitignore не найден, используется стандартный список исключений.")
 
     print()
 
-    data = scan_directory(
-        target_dir,
-        use_gitignore=args.gitignore
-    )
+    data = scan_directory(target_dir, use_gitignore=args.gitignore)
 
     if not data:
         print("Подходящих файлов для анализа не найдено.")
         return
 
-    headers = [
-        "Файл",
-        "Тип",
-        "Всего",
-        "Код",
-        "Коммент",
-        "Пустые"
-    ]
-
+    headers = ["Файл", "Тип", "Всего", "Код", "Коммент", "Пустые"]
     rows = []
 
-    totals = {
-        "total": 0,
-        "code": 0,
-        "comments": 0,
-        "blank": 0
-    }
+    totals = {"total": 0, "code": 0, "comments": 0, "blank": 0}
 
     for row in data:
         rows.append([
@@ -509,6 +375,7 @@ def main():
     ])
 
     print_table(headers, rows)
+
 
 if __name__ == "__main__":
     main()
