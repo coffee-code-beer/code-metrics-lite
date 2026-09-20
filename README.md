@@ -97,6 +97,9 @@ config.py                 | .py    | 88     | 65     | 12       | 11
 
 Этот проект распространяется под открытой лицензией MIT License.
 
+
+
+
 # 📊 Code Metrics Lite
 
 A small Python tool with no external dependencies for quickly checking code statistics and counting lines of code.
