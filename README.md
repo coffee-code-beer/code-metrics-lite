@@ -41,7 +41,8 @@
 ### Вариант 2: Установка через pip (прямо из GitHub):
 Вы также можете установить утилиту глобально в систему одной командой:
 
-`pip install git+https://github.com/coffee-code-beer/code-metrics-lite.git`
+`pip install git+https://github.com/coffee-code-beer/code-metrics-lite.git`.
+
 В случае установки через `pip install` - используйте команду `code-metric` для запуска утилиты. Также можно дополнительно указать путь или флаг.
 
 ---
