@@ -43,7 +43,7 @@
 
 `pip install git+https://github.com/coffee-code-beer/code-metrics-lite.git`.
 
-В случае установки через `pip install` - используйте команду `code-metric` для запуска утилиты. Также можно дополнительно указать путь или флаг.
+В случае установки через `pip install` - используйте команду `code-metrics` для запуска утилиты. Также можно дополнительно указать путь или флаг.
 
 ---
 ### Использование .gitignore
@@ -148,6 +148,8 @@ If you do not give a path, the script will analyze the current directory:
 You can also install the utility globally to the system with one command:
 
 `pip install git+https://github.com/coffee-code-beer/code-metrics-lite.git`
+
+After installing via `pip`, use the `code-metrics` command to run the utility. You can also specify a path or flag if needed.
 
 ---
 ### Using .gitignore
