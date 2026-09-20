@@ -1,45 +1,51 @@
 # 📊 Code Metrics Lite
 
-A lightweight, zero-dependency Python utility for instant codebase statistics and line counting.
+Лёгкая утилита на Python без внешних зависимостей для мгновенного анализа статистики кодовой базы и подсчета строк кода.
 
 ---
 
-## 🧐 What is this?
+## 🧐 Что это такое?
 
-**Code Metrics Lite** is a simple, single-file command-line tool designed for developers who want a quick overview of their project's structure without installing heavy, bloated analysis tools. 
+**Code Metrics Lite** — это простой инструмент командной строки, состоящий всего из одного файла. Он создан для разработчиков, которым нужен быстрый обзор структуры проекта без установки тяжелых и громоздких систем анализа.
 
-Whether you are working on a Python backend, a C++ systems project, or a multi-language pet project, this script recursively scans your directory, separates code from comments and blank lines, and outputs a clean, formatted table.
+Независимо от того, работаете ли вы над бэкендом на Python, системным проектом на C++ или многоязычным пет-проектом, этот скрипт рекурсивно сканирует директорию, отделяет код от комментариев и пустых строк, а затем выводит чистую и аккуратную таблицу.
 
-Supported languages out of the box:
-- Python (.py)
-- C++ / C (.cpp, .h)
-- JavaScript / TypeScript (.js, .ts)
-
----
-
-## ✨ Features
-
-- **Zero Dependencies:** Uses only Python standard libraries (os, sys, pathlib). No pip install required!
-- **Smart Parsing:** Distinguishes between actual code lines, single-line comments, and multi-line/block comments.
-- **Auto-Ignition:** Automatically skips common clutter directories (.git, build, node_modules, __pycache__, venv, etc.).
-- **Clean Output:** Renders a neat terminal table with file-by-file stats and a grand total summary.
+Поддерживаемые языки «из коробки»:
+- Python (`.py`)
+- C++ / C (`.cpp`, `.h`)
+- JavaScript / TypeScript (`.js`, `.ts`)
 
 ---
 
-## 🚀 Quick Start
+## ✨ Особенности
 
-1. Download or clone the script (analyzer.py) into your workspace.
-2. Run it via your terminal, passing the target directory path as an argument:
+- **Никаких зависимостей:** Использует только стандартные библиотеки Python (`os`, `sys`, `pathlib`). Никакой установки через `pip` не требуется (но опционально доступна).
+- **Умный парсинг:** Различает реальные строки кода, однострочные комментарии и многострочные блоки комментариев.
+- **Авто-игнорирование:** Автоматически пропускает стандартные служебные директории (`.git`, `build`, `node_modules`, `__pycache__`, `venv` и др.).
+- **Активный вывод:** Формирует понятную терминальную таблицу со статистикой по каждому файлу и общим итогом.
+
+---
+
+## 🚀 Быстрый старт
+
+### Вариант 1: Использование скачанного скрипта
+1. Скачайте или клонируйте скрипт (`analyzer.py`) в ваш рабочий каталог.
+2. Запустите его через терминал, передав в качестве аргумента путь к нужной папке:
 
 python analyzer.py /path/to/your/project
 
-If you don't specify a path, it will automatically analyze the current working directory:
+Если не указывать путь, скрипт автоматически проанализирует текущую рабочую директорию:
 
 python analyzer.py
 
+### Вариант 2: Установка через pip (прямо из GitHub):
+Вы также можете установить утилиту глобально в систему одной командой:
+
+`pip install git+https://github.com/coffee-code-beer/code-metrics-lite.git`
+
 ---
 
-## 📊 Example Output
+## 📊 Пример вывода
 
  Сканирование директории: /home/user/projects/my-cpp-app ...
 
@@ -53,18 +59,17 @@ config.py                 | .py    | 88     | 65     | 12       | 11
 
 ---
 
-## 🛠️ Extending
+## 🛠️ Расширение
 
-Want to add support for another language? Just open analyzer.py and add a new entry to the CONFIG dictionary at the top of the file.
-
----
-
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome! Feel free to check the issues page.
+Хотите добавить поддержку другого языка программирования? Просто откройте файл analyzer.py и добавьте новую запись в словарь CONFIG в самом начале файла:
 
 ---
 
-## 📝 License
+## 🤝 Участие в разработке
 
-This project is open-source under the MIT License.
+Контрибьюты, исправления и предложения новых функций горячо приветствуются! Смело заглядывайте на страницу issues.
+---
+
+## 📝 Лицензия
+
+Этот проект распространяется под открытой лицензией MIT License.
